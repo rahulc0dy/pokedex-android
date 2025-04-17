@@ -1,6 +1,5 @@
 package com.rahulc0dy.pokedex.ui.screens
 
-import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,12 +27,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.SubcomposeAsyncImage
 import com.rahulc0dy.pokedex.api.PokemonApi
 import com.rahulc0dy.pokedex.services.PokemonDetail
+import com.rahulc0dy.pokedex.ui.theme.PokemonTypeColor
 
 @Composable
 fun PokemonDetailScreen(pokemonId: Int) {
@@ -52,10 +53,14 @@ fun PokemonDetailScreen(pokemonId: Int) {
             Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(p.name.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.headlineMedium)
+            Text(
+                p.name.replaceFirstChar { it.uppercase() },
+                style = MaterialTheme.typography.displayMedium,
+                color = getColorByType(p.types.first().type.name)
+            )
             Spacer(Modifier.height(8.dp))
 
             // 3×2 grid of sprites
@@ -65,15 +70,17 @@ fun PokemonDetailScreen(pokemonId: Int) {
                 p.sprites.frontShiny to "Shiny Front",
                 p.sprites.backShiny to "Shiny Back"
             )
-            LazyVerticalGrid (
+            LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                modifier = Modifier.height(250.dp)
+                modifier = Modifier.height(300.dp)
             ) {
                 items(spriteUrls) { (url, label) ->
-                    Column (
+                    Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(8.dp)
-                    ) {
+                        modifier = Modifier
+                            .padding(8.dp),
+
+                        ) {
                         SubcomposeAsyncImage(
                             model = url,
                             contentDescription = "${p.name} $label",
@@ -95,35 +102,85 @@ fun PokemonDetailScreen(pokemonId: Int) {
 
             Spacer(Modifier.height(16.dp))
 
-            // Other details
-            Text("ID: ${p.id}", style = MaterialTheme.typography.bodyLarge)
-            Text("Height: ${p.height / 10.0} m", style = MaterialTheme.typography.bodyLarge)
-            Text("Weight: ${p.weight / 10.0} kg", style = MaterialTheme.typography.bodyLarge)
-
-            Spacer(Modifier.height(12.dp))
-
             // Types
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+            Row(horizontalArrangement = Arrangement.Center) {
                 p.types.sortedBy { it.slot }.forEach { slot ->
                     Card(
-                        modifier = Modifier.padding(10.dp)
-                    ) {
-                        Text(slot.type.name.replaceFirstChar { it.uppercase() },modifier = Modifier.padding(10.dp))
+                        modifier = Modifier
+                            .padding(10.dp),
+
+                        ) {
+                        Text(
+                            slot.type.name.replaceFirstChar { it.uppercase() },
+                            modifier = Modifier.padding(10.dp),
+                            color = getColorByType(slot.type.name)
+                        )
                     }
                 }
             }
 
             Spacer(Modifier.height(12.dp))
 
+            Text(
+                "Height: ${p.height / 10.0} m",
+                style = MaterialTheme.typography.headlineMedium
+            )
+            Text(
+                "Weight: ${p.weight / 10.0} kg",
+                style = MaterialTheme.typography.headlineMedium
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+
             // Abilities
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Abilities:", style = MaterialTheme.typography.titleMedium)
-                p.abilities.sortedBy { it.slot }.forEach { slot ->
-                    val name = slot.ability.name.replace('-', ' ').replaceFirstChar { it.uppercase() }
-                    val hiddenTag = if (slot.isHidden) "(hidden)" else ""
-                    Text("• $name $hiddenTag", style = MaterialTheme.typography.bodySmall)
+                Text("Abilities:", style = MaterialTheme.typography.headlineMedium)
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    p.abilities.sortedBy { it.slot }.forEach { slot ->
+                        val name =
+                            slot.ability.name.replace('-', ' ').replaceFirstChar { it.uppercase() }
+                        val hiddenTag = if (slot.isHidden) "(hidden)" else ""
+                        Card(modifier = Modifier.padding(5.dp)) {
+                            Text(
+                                "$name $hiddenTag",
+                                style = MaterialTheme.typography.labelLarge,
+                                modifier = Modifier.padding(10.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+
+fun getColorByType(type: String = "normal"): Color {
+    return when (type.lowercase().trim()) {
+        "normal" -> PokemonTypeColor.NormalType
+        "fighting" -> PokemonTypeColor.FightingType
+        "flying" -> PokemonTypeColor.FlyingType
+        "poison" -> PokemonTypeColor.PoisonType
+        "ground" -> PokemonTypeColor.GroundType
+        "rock" -> PokemonTypeColor.RockType
+        "bug" -> PokemonTypeColor.BugType
+        "ghost" -> PokemonTypeColor.GhostType
+        "steel" -> PokemonTypeColor.SteelType
+        "fire" -> PokemonTypeColor.FireType
+        "water" -> PokemonTypeColor.WaterType
+        "grass" -> PokemonTypeColor.GrassType
+        "electric" -> PokemonTypeColor.ElectricType
+        "psychic" -> PokemonTypeColor.PsychicType
+        "ice" -> PokemonTypeColor.IceType
+        "dragon" -> PokemonTypeColor.DragonType
+        "dark" -> PokemonTypeColor.DarkType
+        "fairy" -> PokemonTypeColor.FairyType
+        "stellar" -> PokemonTypeColor.StellarType
+        "unknown" -> PokemonTypeColor.UnknownType
+        else -> PokemonTypeColor.UnknownType
     }
 }
