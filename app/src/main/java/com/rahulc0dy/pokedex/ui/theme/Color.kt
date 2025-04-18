@@ -34,3 +34,29 @@ object PokemonTypeColor {
     val UnknownType = Color(0xFF81A596)
 }
 
+
+fun getColorByType(type: String = "normal"): Color {
+    return when (type.lowercase().trim()) {
+        "normal" -> PokemonTypeColor.NormalType
+        "fighting" -> PokemonTypeColor.FightingType
+        "flying" -> PokemonTypeColor.FlyingType
+        "poison" -> PokemonTypeColor.PoisonType
+        "ground" -> PokemonTypeColor.GroundType
+        "rock" -> PokemonTypeColor.RockType
+        "bug" -> PokemonTypeColor.BugType
+        "ghost" -> PokemonTypeColor.GhostType
+        "steel" -> PokemonTypeColor.SteelType
+        "fire" -> PokemonTypeColor.FireType
+        "water" -> PokemonTypeColor.WaterType
+        "grass" -> PokemonTypeColor.GrassType
+        "electric" -> PokemonTypeColor.ElectricType
+        "psychic" -> PokemonTypeColor.PsychicType
+        "ice" -> PokemonTypeColor.IceType
+        "dragon" -> PokemonTypeColor.DragonType
+        "dark" -> PokemonTypeColor.DarkType
+        "fairy" -> PokemonTypeColor.FairyType
+        "stellar" -> PokemonTypeColor.StellarType
+        "unknown" -> PokemonTypeColor.UnknownType
+        else -> PokemonTypeColor.UnknownType
+    }
+}

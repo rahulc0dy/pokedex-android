@@ -6,7 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rahulc0dy.pokedex.api.PokemonApi
-import com.rahulc0dy.pokedex.services.NamedAPIResource
+import com.rahulc0dy.pokedex.datamodels.NamedAPIResource
 import kotlinx.coroutines.launch
 
 class PokedexViewModel : ViewModel() {
