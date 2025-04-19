@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
@@ -49,6 +50,9 @@ import com.rahulc0dy.pokedex.composables.EvolutionTimeline
 import com.rahulc0dy.pokedex.datamodels.EvolutionChain
 import com.rahulc0dy.pokedex.datamodels.PokemonDetail
 import com.rahulc0dy.pokedex.ui.theme.getColorByType
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
 @Composable
 fun PokemonDetailScreen(pokemonId: Int) {
@@ -67,11 +71,18 @@ fun PokemonDetailScreen(pokemonId: Int) {
     }
 }
 
+data class TypeEffectiveness(
+    val doubleDamageFrom: Set<String> = emptySet(),
+    val halfDamageFrom: Set<String> = emptySet(),
+    val noDamageFrom: Set<String> = emptySet()
+)
+
 @Composable
 fun PokemonProfileCard(detail: PokemonDetail) {
     val primaryColor = getColorByType(detail.types.firstOrNull()?.type?.name ?: "normal")
 
     var evolutionChain by remember { mutableStateOf<EvolutionChain?>(null) }
+    var typeEffectiveness by remember { mutableStateOf<TypeEffectiveness?>(null) }
 
     LaunchedEffect(detail.id) {
         // First, fetch the species details
@@ -83,6 +94,9 @@ fun PokemonProfileCard(detail: PokemonDetail) {
 
         // Finally, fetch the evolution chain with the correct ID
         evolutionChain = PokemonApi.service.fetchEvolutionChain(evolutionId)
+
+        // Fetch type effectiveness data for each type
+        typeEffectiveness = calculateCombinedTypeEffectiveness(detail.types.map { it.type.name })
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -136,6 +150,11 @@ fun PokemonProfileCard(detail: PokemonDetail) {
                         )
                     }
                 }
+            }
+
+            // Type effectiveness section
+            item {
+                TypeEffectivenessSection(typeEffectiveness)
             }
 
             // 2. Encounter link
@@ -274,7 +293,7 @@ fun PokemonProfileCard(detail: PokemonDetail) {
                     ) {
                         // 2) Bar
                         LinearProgressIndicator(
-                            progress = progress,
+                            progress = { progress },
                             color = primaryColor,
                             trackColor = Color.LightGray,
                             modifier = Modifier
@@ -454,3 +473,150 @@ fun PokemonProfileCard(detail: PokemonDetail) {
         }
     }
 }
+
+@Composable
+fun TypeEffectivenessSection(typeEffectiveness: TypeEffectiveness?) {
+    if (typeEffectiveness == null) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+        }
+        return
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        Text(
+            text = "Type Effectiveness",
+            style = MaterialTheme.typography.titleMedium,
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Weaknesses (double damage from)
+        if (typeEffectiveness.doubleDamageFrom.isNotEmpty()) {
+            Text(
+                text = "Weak against:",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+            )
+
+            TypeEffectivenessRow(
+                types = typeEffectiveness.doubleDamageFrom.toList(),
+                multiplier = "2×"
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        // Resistances (half damage from)
+        if (typeEffectiveness.halfDamageFrom.isNotEmpty()) {
+            Text(
+                text = "Resistant against:",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+            )
+
+            TypeEffectivenessRow(
+                types = typeEffectiveness.halfDamageFrom.toList(),
+                multiplier = "½×"
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        // Immunities (no damage from)
+        if (typeEffectiveness.noDamageFrom.isNotEmpty()) {
+            Text(
+                text = "Immune against:",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+            )
+
+            TypeEffectivenessRow(
+                types = typeEffectiveness.noDamageFrom.toList(),
+                multiplier = "0×"
+            )
+        }
+    }
+}
+
+@Composable
+fun TypeEffectivenessRow(types: List<String>, multiplier: String) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.padding(vertical = 4.dp)
+    ) {
+        items(types) { typeName ->
+            Card(
+                modifier = Modifier.padding(vertical = 4.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = typeName.replaceFirstChar { it.uppercase() },
+                        color = getColorByType(typeName),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        text = multiplier,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        }
+    }
+}
+
+suspend fun calculateCombinedTypeEffectiveness(types: List<String>): TypeEffectiveness =
+    coroutineScope {
+        // Fetch effectiveness data for each type in parallel
+        val typeEffectivenessList = types.map { typeName ->
+            async { PokemonApi.service.fetchTypeEffectiveness(typeName) }
+        }.awaitAll()
+
+        // Sets to track effectiveness
+        val doubleDamageFrom = mutableSetOf<String>()
+        val halfDamageFrom = mutableSetOf<String>()
+        val noDamageFrom = mutableSetOf<String>()
+
+        // Process each type's damage relations
+        typeEffectivenessList.forEach { response ->
+            // Add double damage types
+            doubleDamageFrom.addAll(response.damageRelations.doubleDamageFrom.map { it.name })
+
+            // Add half damage types
+            halfDamageFrom.addAll(response.damageRelations.halfDamageFrom.map { it.name })
+
+            // Add no damage types
+            noDamageFrom.addAll(response.damageRelations.noDamageFrom.map { it.name })
+        }
+
+        // Calculate final effectiveness (considering dual types)
+        // Immunities take precedence
+        val finalDoubleDamageFrom = doubleDamageFrom.filter { type ->
+            !halfDamageFrom.contains(type) && !noDamageFrom.contains(type)
+        }.toSet()
+
+        val finalHalfDamageFrom = halfDamageFrom.filter { type ->
+            !doubleDamageFrom.contains(type) && !noDamageFrom.contains(type)
+        }.toSet()
+
+        // Return the combined effectiveness
+        TypeEffectiveness(
+            doubleDamageFrom = finalDoubleDamageFrom,
+            halfDamageFrom = finalHalfDamageFrom,
+            noDamageFrom = noDamageFrom
+        )
+    }

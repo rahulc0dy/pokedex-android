@@ -4,6 +4,7 @@ import com.rahulc0dy.pokedex.datamodels.EvolutionChain
 import com.rahulc0dy.pokedex.datamodels.PokemonDetail
 import com.rahulc0dy.pokedex.datamodels.PokemonListResponse
 import com.rahulc0dy.pokedex.datamodels.PokemonSpecies
+import com.rahulc0dy.pokedex.datamodels.TypeEffectivenessResponse
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
@@ -36,6 +37,10 @@ interface PokemonService {
 
     @GET("evolution-chain/{id}")
     suspend fun fetchEvolutionChain(@Path("id") id: Int): EvolutionChain
+
+    // New endpoint to fetch type effectiveness data
+    @GET("type/{name}")
+    suspend fun fetchTypeEffectiveness(@Path("name") typeName: String): TypeEffectivenessResponse
 }
 
 
