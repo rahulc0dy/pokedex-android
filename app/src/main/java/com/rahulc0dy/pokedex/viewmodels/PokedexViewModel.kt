@@ -15,7 +15,9 @@ class PokedexViewModel : ViewModel() {
 
     init {
         viewModelScope.launch {
-            pokemons = PokemonApi.service.listPokemons().results
+            pokemons = PokemonApi.service.listPokemons().results.map { pokemonItem ->
+                NamedAPIResource(name = pokemonItem.name, url = pokemonItem.url)
+            }
         }
     }
 }
